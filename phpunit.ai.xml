@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  phpunit.ai.xml - AI coverage gate (T151 / dustur VII)
+  =====================================================
+  Used in CI via:  php artisan test -c phpunit.ai.xml -coverage -min=85
+  (the -coverage / -min flags are Pest/PHPUnit CLI options; in the workflow
+  they are written with the usual double-hyphen spelling).
+
+  Purpose:
+  - Runs ONLY the AI unit suites (tests/Unit/Ai + tests/Unit/AiAgent).
+  - Restricts the coverage <source> scope to AI code, so the percentage is
+    meaningful for the AI domain and not diluted by the whole app/ tree.
+  - min=85 makes Pest/PHPUnit exit non-zero when AI coverage is below 85%,
+    failing the CI job and blocking the merge.
+
+  Coverage driver: Xdebug or PCOV (enabled via shivammathur/setup-php
+  "coverage: xdebug" in .github/workflows/ci.yml).
+
+  Source scope (must match every AI code path the suites exercise):
+  - app/Ai                  (agents, DTOs, MCP, prompts, providers, validation)
+  - app/Services/AI         (AiAgent services: SWOT, competitive, artifacts)
+  - app/Services/AiGateway.php
+  - app/Exceptions/Ai       (AI-specific exceptions)
+
+  NOTE: if measured AI coverage is below 85%, extend the suites (add tests for
+  McpRouter, ConcurrentDispatcher, ClaudeProvider/OpenAiProvider, AiResponse,
+  prompt classes, etc.) - do NOT weaken the gate.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Ai">
+            <directory>tests/Unit/Ai</directory>
+        </testsuite>
+        <testsuite name="AiAgent">
+            <directory>tests/Unit/AiAgent</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>app/Ai</directory>
+            <directory>app/Services/AI</directory>
+            <directory>app/Exceptions/Ai</directory>
+            <file>app/Services/AiGateway.php</file>
+        </include>
+    </source>
+
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>
