@@ -25,19 +25,19 @@ class ProjectFactory extends Factory
         return [
             'user_id' => User::factory()->ideaOwner(),
             'category_id' => Category::factory(),
-            'title' => fake()->sentence(4),
-            'description' => fake()->paragraph(6),
+            'title' => $this->faker->sentence(4),
+            'description' => $this->faker->paragraph(6),
             'status' => ProjectState::NEEDS_FUNDING,
             'publication_status' => ProjectStatus::PUBLISHED,
-            'tags' => fake()->randomElements(['laravel', 'react', 'ai', 'fintech', 'saas', 'mobile'], 3),
-            'github_url' => fake()->optional()->url(),
+            'tags' => $this->faker->randomElements(['laravel', 'react', 'ai', 'fintech', 'saas', 'mobile'], 3),
+            'github_url' => $this->faker->optional()->url(),
             'video_url' => null,
             'video_provider' => null,
-            'budget_min' => fake()->optional()->numberBetween(10000, 100000),
+            'budget_min' => $this->faker->optional()->numberBetween(10000, 100000),
             'budget_max' => null,
             'visibility_level' => VisibilityLevel::AFTER_AGREEMENT,
-            'ai_score' => fake()->optional()->randomFloat(2, 40, 95),
-            'view_count' => fake()->numberBetween(0, 500),
+            'ai_score' => $this->faker->optional()->randomFloat(2, 40, 95),
+            'view_count' => $this->faker->numberBetween(0, 500),
         ];
     }
 
