@@ -37,6 +37,14 @@ class UpdateProjectRequest extends FormRequest
         return [
             'title' => ['sometimes', 'string', 'min:5', 'max:120'],
             'description' => ['sometimes', 'string', 'min:50', 'max:2000'],
+            'bio' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'cover_image' => [
+                'sometimes',
+                'nullable',
+                'image',
+                'mimes:'.implode(',', config('uploads.images.mimes')),
+                'max:'.config('uploads.images.max_kb'),
+            ],
             'category_id' => ['sometimes', 'exists:categories,id'],
             'status' => ['sometimes', Rule::enum(ProjectState::class)],
             'publication_status' => ['sometimes', Rule::enum(ProjectStatus::class)],

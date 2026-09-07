@@ -37,6 +37,7 @@ class ProjectResource extends JsonResource
             'id' => $project->id,
             'title' => $project->title,
             'description' => $project->description,
+            'bio' => $project->bio,
             'category' => $project->category ? [
                 'slug' => $project->category->slug,
                 'name' => $project->category->name(),

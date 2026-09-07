@@ -2,14 +2,17 @@
 
 namespace App\Services\Project;
 
+use App\Enums\FileType;
 use App\Models\Project;
+use App\Models\ProjectFile;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 
 /**
  * T160 — منطق أعمال المشاريع (SRS-API-15..17 · SRS-F02).
  *
  * يتولّى الإنشاء والتحديث + استنتاج مزوّد الفيديو (T133) + كشف التغييرات
- * الجوهرية التي تستدعي اقتراح إعادة تقييم يدوية (SRS-F04-02).
+ * الجوهرية التي تستدعي اقتراح إعادة تقييم يدوية (SRS-F04-02) + رفع صورة الغلاف.
  * (التحقق من الصحة في StoreProjectRequest/UpdateProjectRequest — T163.)
  */
 class ProjectService
@@ -18,12 +21,25 @@ class ProjectService
      * الحقول الجوهرية — تغيّرها يستدعي اقتراح إعادة تقييم (contract §PUT / SRS-F04-02).
      * ملاحظة: العقد يضيف video_url أيضاً — يُفصَّل في T168/T166.
      */
-    public const SIGNIFICANT_FIELDS = ['description', 'tags', 'github_url', 'status'];
+    public const SIGNIFICANT_FIELDS = ['description', 'bio', 'tags', 'github_url', 'status'];
+
+    public function __construct(private readonly ?FileValidationService $fileValidation = null)
+    {
+    }
 
     /** إنشاء مشروع جديد لصاحب الفكرة (SRS-API-15). */
     public function create(User $user, array $data): Project
     {
-        return $user->projects()->create($this->applyVideoProviderInference($data));
+        $coverImage = $data['cover_image'] ?? null;
+        unset($data['cover_image']);
+
+        $project = $user->projects()->create($this->applyVideoProviderInference($data));
+
+        if ($coverImage instanceof UploadedFile) {
+            $this->saveCoverImage($project, $coverImage);
+        }
+
+        return $project;
     }
 
     /**
@@ -37,9 +53,16 @@ class ProjectService
      */
     public function update(Project $project, array $data): array
     {
+        $coverImage = $data['cover_image'] ?? null;
+        unset($data['cover_image']);
+
         $original = $project->only(self::SIGNIFICANT_FIELDS);
 
         $project->update($this->applyVideoProviderInference($data));
+
+        if ($coverImage instanceof UploadedFile) {
+            $this->saveCoverImage($project, $coverImage);
+        }
 
         $changedFields = collect(self::SIGNIFICANT_FIELDS)
             ->filter(fn (string $key) => json_encode($original[$key] ?? null) !== json_encode($project->{$key}))
@@ -51,6 +74,31 @@ class ProjectService
             'significant_changes' => $changedFields !== [],
             'changed_significant_fields' => $changedFields,
         ];
+    }
+
+    /**
+     * حفظ صورة غلاف المشروع في جدول project_files والقرص العام.
+     */
+    public function saveCoverImage(Project $project, UploadedFile $file): ProjectFile
+    {
+        $validator = $this->fileValidation ?? app(FileValidationService::class);
+        $validator->validateFile($file, FileType::IMAGE);
+
+        // إلغاء وسم الغلاف عن أي صورة غلاف سابقة
+        $project->files()->where('type', FileType::IMAGE)->where('is_cover', true)->update(['is_cover' => false]);
+
+        $maxSort = (int) $project->files()->max('sort_order');
+        $path = $file->store('projects/'.$project->id, 'public');
+
+        return $project->files()->create([
+            'type' => FileType::IMAGE,
+            'file_path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'mime_type' => $file->getMimeType(),
+            'file_size' => $file->getSize(),
+            'is_cover' => true,
+            'sort_order' => ++$maxSort,
+        ]);
     }
 
     /**

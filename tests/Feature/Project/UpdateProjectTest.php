@@ -60,6 +60,34 @@ it('flags significant_changes true when a significant field changes', function (
         ->assertJsonPath('data.significant_changes', true);
 });
 
+it('flags significant_changes true when bio changes', function () {
+    $this->putJson("/api/projects/{$this->project->id}", [
+        'bio' => 'نبذة مختصرة جديدة للمشروع تستدعي إعادة التقييم.',
+    ])
+        ->assertStatus(200)
+        ->assertJsonPath('data.significant_changes', true)
+        ->assertJsonPath('data.project.bio', 'نبذة مختصرة جديدة للمشروع تستدعي إعادة التقييم.');
+
+    expect($this->project->fresh()->bio)->toBe('نبذة مختصرة جديدة للمشروع تستدعي إعادة التقييم.');
+});
+
+it('updates cover_image on an existing project', function () {
+    \Illuminate\Support\Facades\Storage::fake('public');
+
+    $coverFile = \Illuminate\Http\UploadedFile::fake()->image('new_cover.png', 400, 300);
+
+    $this->put("/api/projects/{$this->project->id}", [
+        'cover_image' => $coverFile,
+    ])
+        ->assertStatus(200);
+
+    $this->assertDatabaseHas('project_files', [
+        'project_id' => $this->project->id,
+        'type' => \App\Enums\FileType::IMAGE->value,
+        'is_cover' => true,
+    ]);
+});
+
 it('keeps significant_changes false when only the title changes', function () {
     $this->putJson("/api/projects/{$this->project->id}", [
         'title' => 'عنوان جديد لا يمس الحقول الجوهرية',

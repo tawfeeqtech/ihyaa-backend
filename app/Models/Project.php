@@ -58,6 +58,7 @@ class Project extends Model
         'category_id',
         'title',
         'description',
+        'bio',
         'status',
         'publication_status',      // حالة النشر draft|published|archived — enums.md §1.2
         'tags',
@@ -152,6 +153,7 @@ class Project extends Model
             'id'            => (string) $this->id,
             'title'         => $this->title,
             'description'   => $this->description,
+            'bio'           => $this->bio,
             'category'      => $this->category?->slug,
             'tags'          => $this->tags ?? [],
             'status'        => $this->status?->value,
@@ -214,6 +216,7 @@ class Project extends Model
             ? $query->where(function (Builder $q) use ($term) {
                 $q->where('title', 'like', "%{$term}%")
                     ->orWhere('description', 'like', "%{$term}%")
+                    ->orWhere('bio', 'like', "%{$term}%")
                     ->orWhere('tags', 'like', "%{$term}%");
             })
             : $query;

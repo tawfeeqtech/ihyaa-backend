@@ -31,6 +31,13 @@ class StoreProjectRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'min:5', 'max:120'],
             'description' => ['required', 'string', 'min:50', 'max:2000'],       // 50–2000 حرف
+            'bio' => ['nullable', 'string', 'max:500'],
+            'cover_image' => [
+                'nullable',
+                'image',
+                'mimes:'.implode(',', config('uploads.images.mimes')),
+                'max:'.config('uploads.images.max_kb'),
+            ],
             'category_id' => ['required', 'exists:categories,id'],
             'status' => ['required', Rule::enum(ProjectState::class)],
             'publication_status' => ['sometimes', Rule::enum(ProjectStatus::class)],
