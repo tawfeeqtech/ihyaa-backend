@@ -39,6 +39,9 @@ Route::get('/ready', [HealthController::class, 'ready']);
 Route::post('/register', [AuthController::class, 'register'])
     ->middleware('throttle:api.register');                           // SRS-API-01 · RL-AUTH-01 · 3/دقيقة · IP
 
+Route::post('/register/role', [AuthController::class, 'setRolePublic'])
+    ->middleware('throttle:api.register');                           // تحديد الدور بعد التسجيل العام · 3/دقيقة · IP
+
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware(['rate.violations', 'throttle:api.login']);         // SRS-API-02 · RL-AUTH-02 · 5/دقيقة · email
 
@@ -115,6 +118,10 @@ Route::middleware(['auth:sanctum', 'token.refresh'])->group(function () {
     Route::post('/auth/{provider}/role', [AuthController::class, 'finalizeRole'])
         ->whereIn('provider', ['google', 'github', 'linkedin'])
         ->middleware(['role.pending', 'throttle:api.oauth']);        // SRS-F01-07 · RL-AUTH-07 · 5/دقيقة
+
+    // تثبيت الدور للمستخدم المسجل — مصادق + role.pending (role = null فقط)
+    Route::post('/auth/role', [AuthController::class, 'setRole'])
+        ->middleware(['role.pending', 'throttle:api.oauth']);        // SRS-F01-07 · 5/دقيقة
 
     Route::get('/me', [AuthController::class, 'me'])
         ->middleware('throttle:shared.read');

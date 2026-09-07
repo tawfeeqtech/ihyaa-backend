@@ -34,10 +34,10 @@ class AuthController
         // T163: القواعد في RegisterRequest — نقل من الـ controller بلا تغيير في السلوك.
         $data = $request->validated();
 
-        $role = UserRole::from($data['role']);
+        $role = ! empty($data['role']) ? UserRole::from($data['role']) : null;
 
         // admin لا يُنشأ بالتسجيل العام (SRS §1.2)
-        if ($role->isAdmin()) {
+        if ($role?->isAdmin()) {
             return $this->error('FORBIDDEN', __('auth.admin_registration_forbidden'), 403);
         }
 
@@ -53,10 +53,12 @@ class AuthController
             'preferred_sectors' => $data['preferred_sectors'] ?? null,
         ]);
 
-        $roleModel = Role::where('name', $role->value)->first();
+        if ($role !== null) {
+            $roleModel = Role::where('name', $role->value)->first();
 
-        if ($roleModel) {
-            $user->roles()->attach($roleModel->id);
+            if ($roleModel) {
+                $user->roles()->attach($roleModel->id);
+            }
         }
 
         // إشعار ترحيبي فوري (T144) — في التطبيق فقط، بلا بريد (الدستور C11).
@@ -73,7 +75,10 @@ class AuthController
 
         // الدستور V · US-001 s6: لا يُصدر توكن قبل تفعيل البريد (T124).
         // التوكن يُصدر بعد التفعيل الناجح فقط — في verifyEmail() أو login().
-        $response = ['otp_required' => true];
+        $response = [
+            'otp_required' => true,
+            'email' => $user->email,
+        ];
 
         // تجربة التطوير: إظهار الرمز في استجابة register عند APP_DEBUG=true فقط
         // (لا يُكشف في الإنتاج). الرمز يُنشأ هنا ويُرسل بالبريد — هذه نسخة مساعدة.
@@ -82,6 +87,95 @@ class AuthController
         }
 
         return $this->created($response, __('auth.registered'));
+    }
+
+    /**
+     * تعيين الدور العام قبل تفعيل البريد — POST /register/role (RL-AUTH-01 · 3/دقيقة).
+     * للمستخدمين الجدد الذين سجلوا بدون دور ولم يفعلوا البريد بعد.
+     */
+    public function setRolePublic(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'string', 'email', 'max:190'],
+            'role' => ['required', Rule::enum(UserRole::class)],
+            'university' => ['nullable', 'string', 'max:190'],
+            'major' => ['nullable', 'string', 'max:190'],
+            'investment_focus' => ['nullable', 'string', 'max:190'],
+            'investment_range' => ['nullable', 'array', 'min:1', 'max:2'],
+            'investment_range.min' => ['nullable', 'numeric', 'min:0'],
+            'investment_range.max' => ['nullable', 'numeric', 'gte:investment_range.min'],
+            'preferred_sectors' => ['nullable', 'array', 'max:10'],
+            'preferred_sectors.*' => ['string', 'max:100'],
+        ]);
+
+        $user = User::where('email', $data['email'])->first();
+
+        if (! $user) {
+            return $this->notFound(__('auth.user_not_found'));
+        }
+
+        if ($user->role !== null) {
+            return $this->error('ROLE_ALREADY_SET', __('profile.role_already_set'), 409);
+        }
+
+        $role = UserRole::from($data['role']);
+
+        if ($role->isAdmin()) {
+            return $this->error('FORBIDDEN', __('auth.admin_registration_forbidden'), 403);
+        }
+
+        $user->setRole($role);
+
+        $profileFields = array_intersect_key($data, array_flip([
+            'university', 'major', 'investment_focus', 'investment_range', 'preferred_sectors',
+        ]));
+        if (! empty($profileFields)) {
+            $user->fill($profileFields)->save();
+        }
+
+        return $this->success([
+            'user' => $user->fresh()->toApiArray(),
+        ], __('auth.role_set'));
+    }
+
+    /**
+     * تعيين الدور للمستخدم المصادق — POST /auth/role (SRS-F01-07).
+     * route داخل auth:sanctum + role.pending (role = null فقط).
+     */
+    public function setRole(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'role' => ['required', Rule::enum(UserRole::class)],
+            'university' => ['nullable', 'string', 'max:190'],
+            'major' => ['nullable', 'string', 'max:190'],
+            'investment_focus' => ['nullable', 'string', 'max:190'],
+            'investment_range' => ['nullable', 'array', 'min:1', 'max:2'],
+            'investment_range.min' => ['nullable', 'numeric', 'min:0'],
+            'investment_range.max' => ['nullable', 'numeric', 'gte:investment_range.min'],
+            'preferred_sectors' => ['nullable', 'array', 'max:10'],
+            'preferred_sectors.*' => ['string', 'max:100'],
+        ]);
+
+        $role = UserRole::from($data['role']);
+
+        if ($role->isAdmin()) {
+            return $this->error('FORBIDDEN', __('auth.admin_registration_forbidden'), 403);
+        }
+
+        $user->setRole($role);
+
+        $profileFields = array_intersect_key($data, array_flip([
+            'university', 'major', 'investment_focus', 'investment_range', 'preferred_sectors',
+        ]));
+        if (! empty($profileFields)) {
+            $user->fill($profileFields)->save();
+        }
+
+        return $this->success([
+            'user' => $user->fresh()->toApiArray(),
+        ], __('auth.role_set'));
     }
 
     // ——————————————————————— الدخول (RL-AUTH-02 · 5/دقيقة لكل بريد) ———————————————————————
