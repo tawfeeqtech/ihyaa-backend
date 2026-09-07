@@ -215,9 +215,31 @@ class AuthController
 
     public function logout(Request $request): JsonResponse
     {
+        if ($request->boolean('all') || $request->boolean('all_devices')) {
+            return $this->logoutAll($request);
+        }
+
         $request->user()->currentAccessToken()->delete();
 
         return $this->noContent(__('auth.logged_out'));
+    }
+
+    public function logoutAll(Request $request): JsonResponse
+    {
+        $request->user()->tokens()->delete();
+
+        return $this->noContent(__('auth.logged_out_all'));
+    }
+
+    public function logoutOthers(Request $request): JsonResponse
+    {
+        $currentTokenId = $request->user()->currentAccessToken()?->id;
+
+        $request->user()->tokens()
+            ->when($currentTokenId, fn ($query) => $query->where('id', '!=', $currentTokenId))
+            ->delete();
+
+        return $this->noContent(__('auth.logged_out_others'));
     }
 
     // ——————————————————————— المستخدم الحالي ———————————————————————

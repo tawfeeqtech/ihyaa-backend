@@ -114,6 +114,12 @@ Route::middleware(['auth:sanctum', 'token.refresh'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])
         ->middleware('throttle:api.logout');                         // SRS-API-03 · RL-AUTH-03 · 10/دقيقة · user_id
 
+    Route::post('/logout-all', [AuthController::class, 'logoutAll'])
+        ->middleware('throttle:api.logout');
+
+    Route::post('/logout-others', [AuthController::class, 'logoutOthers'])
+        ->middleware('throttle:api.logout');
+
     // تثبيت الدور بعد أول دخول OAuth — مصادق + role.pending (role = null فقط)
     Route::post('/auth/{provider}/role', [AuthController::class, 'finalizeRole'])
         ->whereIn('provider', ['google', 'github', 'linkedin'])
