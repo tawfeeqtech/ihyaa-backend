@@ -45,6 +45,30 @@ it('updates an investor profile fields', function () {
         ->assertJsonCount(2, 'data.preferred_sectors');
 });
 
+it('updates skills and social links in the extended profile', function () {
+    $owner = User::factory()->ideaOwner()->create();
+    Sanctum::actingAs($owner);
+
+    $this->putJson('/api/profile', [
+        'skills' => ['Laravel', 'React'],
+        'social_links' => [
+            'github' => 'https://github.com/sara',
+            'linkedin' => 'https://linkedin.com/in/sara',
+        ],
+    ])
+        ->assertStatus(200)
+        ->assertJsonPath('data.skills.0', 'Laravel')
+        ->assertJsonPath('data.skills.1', 'React')
+        ->assertJsonPath('data.social_links.github', 'https://github.com/sara')
+        ->assertJsonPath('data.social_links.linkedin', 'https://linkedin.com/in/sara');
+
+    expect($owner->fresh()->profile->skills)->toBe(['Laravel', 'React'])
+        ->and($owner->fresh()->profile->social_links)->toBe([
+            'github' => 'https://github.com/sara',
+            'linkedin' => 'https://linkedin.com/in/sara',
+        ]);
+});
+
 it('rejects an investment range where min exceeds max', function () {
     $investor = User::factory()->investor()->create();
     Sanctum::actingAs($investor);

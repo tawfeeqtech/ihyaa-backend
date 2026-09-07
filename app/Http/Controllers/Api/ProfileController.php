@@ -42,6 +42,10 @@ class ProfileController
             'investment_range.max' => ['nullable', 'numeric', 'gte:investment_range.min'],
             'preferred_sectors' => ['sometimes', 'nullable', 'array', 'max:10'],
             'preferred_sectors.*' => ['string', 'max:100'],
+            'skills' => ['sometimes', 'nullable', 'array', 'max:20'],
+            'skills.*' => ['string', 'max:100'],
+            'social_links' => ['sometimes', 'nullable', 'array', 'max:10'],
+            'social_links.*' => ['nullable', 'string', 'max:500'],
         ]);
 
         // تعيين الدور — مرة واحدة فقط (أول دخول OAuth)
@@ -64,7 +68,17 @@ class ProfileController
             unset($data['role']);
         }
 
+        $profileData = array_intersect_key($data, array_flip([
+            'skills',
+            'social_links',
+        ]));
+        unset($data['skills'], $data['social_links']);
+
         $user->fill($data)->save();
+
+        if ($profileData !== []) {
+            $user->profile()->updateOrCreate([], $profileData);
+        }
 
         return $this->success($user->fresh()->toApiArray(), __('profile.updated'));
     }

@@ -31,6 +31,8 @@ class UserResource extends JsonResource
             'investment_focus' => $this->investment_focus,
             'investment_range' => $this->investment_range,
             'preferred_sectors' => $this->preferred_sectors,
+            'skills' => $this->profile?->skills,
+            'social_links' => $this->profile?->social_links,
             'created_at' => $this->created_at?->toISOString(),
         ];
     }
