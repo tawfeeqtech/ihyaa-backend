@@ -3,6 +3,7 @@
 namespace App\Services\Project;
 
 use App\Models\Project;
+use App\Models\Tag;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -35,6 +36,16 @@ class TagSuggestionService
     protected function collectTags(): array
     {
         $tags = [];
+
+        Tag::query()
+            ->where('is_active', true)
+            ->pluck('name')
+            ->each(function (string $tag) use (&$tags) {
+                $tag = trim($tag);
+                if ($tag !== '') {
+                    $tags[$tag] = 0;
+                }
+            });
 
         Project::query()
             ->published()

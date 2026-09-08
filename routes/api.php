@@ -94,6 +94,9 @@ Route::get('/search/suggestions', [SearchController::class, 'suggestions'])
 Route::get('/tags/suggestions', [TagController::class, 'suggestions'])
     ->middleware('throttle:public.browse');                          // SRS-API-49 · L2 · 30/دقيقة
 
+Route::get('/tags', [TagController::class, 'index'])
+    ->middleware('throttle:public.browse');
+
 Route::get('/categories', [CategoryController::class, 'index'])
     ->middleware('throttle:public.browse');                          // SRS-F02-01 · L2 · 30/دقيقة
 
@@ -106,6 +109,25 @@ Route::get('/profile/{user}', [ProfileController::class, 'showPublic'])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'token.refresh'])->group(function () {
+
+    /*
+    | إدارة التصنيفات والوسوم — الصلاحيات داخل controllers لأن الإنشاء متاح
+    | لصاحب الفكرة والمدير، بينما التعديل والحذف للمدير فقط.
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/categories', [CategoryController::class, 'store'])
+        ->middleware('throttle:shared.write');
+    Route::put('/categories/{category}', [CategoryController::class, 'update'])
+        ->middleware('throttle:shared.write');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
+        ->middleware('throttle:shared.write');
+
+    Route::post('/tags', [TagController::class, 'store'])
+        ->middleware('throttle:shared.write');
+    Route::put('/tags/{tag}', [TagController::class, 'update'])
+        ->middleware('throttle:shared.write');
+    Route::delete('/tags/{tag}', [TagController::class, 'destroy'])
+        ->middleware('throttle:shared.write');
 
     /*
     | L1 — استكمال المصادقة (مصادق)
