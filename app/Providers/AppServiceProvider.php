@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Evaluation;
+use App\Models\PersonalAccessToken;
 use App\Models\Project;
 use App\Observers\EvaluationObserver;
 use App\Observers\ProjectObserver;
@@ -11,6 +12,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
         $this->configureRateLimiting();
 
         // مزامنة فهرس البحث تلقائياً عند إنشاء/تعديل/حذف/استرجاع المشاريع (plan §5.3 · T127)

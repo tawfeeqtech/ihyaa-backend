@@ -18,6 +18,8 @@
     "auth.logged_out": "Logged out successfully",
     "auth.logged_out_all": "Logged out from all devices successfully",
     "auth.logged_out_others": "Logged out from other devices successfully",
+    "auth.session_terminated": "Session terminated successfully",
+    "auth.session_not_found": "Session not found",
     "auth.invalid_credentials": "Invalid credentials",
     "auth.account_disabled": "Account disabled — contact support",
     "auth.user_not_found": "User not found",

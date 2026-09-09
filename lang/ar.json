@@ -18,6 +18,8 @@
     "auth.logged_out": "تم تسجيل الخروج بنجاح",
     "auth.logged_out_all": "تم تسجيل الخروج من جميع الأجهزة بنجاح",
     "auth.logged_out_others": "تم تسجيل الخروج من الأجهزة الأخرى بنجاح",
+    "auth.session_terminated": "تم إنهاء الجلسة بنجاح",
+    "auth.session_not_found": "الجلسة غير موجودة",
     "auth.invalid_credentials": "بيانات الدخول غير صحيحة",
     "auth.account_disabled": "الحساب معطل — تواصل مع الدعم",
     "auth.user_not_found": "المستخدم غير موجود",

@@ -8,6 +8,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Models\Notification;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\GeoLocationService;
 use App\Support\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Laravel\Sanctum\NewAccessToken;
 use Laravel\Socialite\Facades\Socialite;
 
 /**
@@ -202,7 +204,7 @@ class AuthController
 
         $user->forceFill(['last_login_at' => now(), 'last_active_at' => now()])->save();
 
-        $token = $user->createToken('api', ['*'], now()->addHours(User::TOKEN_EXPIRY_HOURS));
+        $token = $this->createSessionToken($user, $request);
 
         return $this->success([
             'token' => $token->plainTextToken,
@@ -240,6 +242,29 @@ class AuthController
             ->delete();
 
         return $this->noContent(__('auth.logged_out_others'));
+    }
+
+    /**
+     * إنشاء توكن API مع حفظ البيانات الوصفية للجلسة (الجهاز، الموقع، الـ IP).
+     */
+    private function createSessionToken(User $user, Request $request, string $name = 'api'): \Laravel\Sanctum\NewAccessToken
+    {
+        $deviceName = $request->input('device_name') ?: $request->header('X-Device-Name');
+        $token = $user->createToken(
+            $deviceName ?: $name,
+            ['*'],
+            now()->addHours(User::TOKEN_EXPIRY_HOURS)
+        );
+
+        $token->accessToken->forceFill([
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'device_name' => $deviceName,
+            'location' => GeoLocationService::resolve($request),
+            'last_used_at' => now(),
+        ])->save();
+
+        return $token;
     }
 
     // ——————————————————————— المستخدم الحالي ———————————————————————
@@ -290,7 +315,7 @@ class AuthController
         }
 
         // الدستور V · US-001 s6: لحظة التفعيل الناجح — هنا يُصدر التوكن لأول مرة (T124).
-        $token = $user->createToken('api', ['*'], now()->addHours(User::TOKEN_EXPIRY_HOURS));
+        $token = $this->createSessionToken($user, $request);
 
         return $this->success([
             'token' => $token->plainTextToken,
@@ -426,7 +451,7 @@ class AuthController
 
         $user->forceFill(['last_login_at' => now(), 'last_active_at' => now()])->save();
 
-        $token = $user->createToken('api', ['*'], now()->addHours(User::TOKEN_EXPIRY_HOURS));
+        $token = $this->createSessionToken($user, $request, $provider);
 
         $roleRequired = $user->role === null; // أول دخول OAuth — يختار الدور (SRS-F01-07)
         $roleSetupState = $roleRequired

@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SavedProjectController;
 use App\Http\Controllers\Api\SavedProjectsController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TrashController;
 use Illuminate\Support\Facades\Route;
@@ -153,6 +154,16 @@ Route::middleware(['auth:sanctum', 'token.refresh'])->group(function () {
 
     Route::get('/me', [AuthController::class, 'me'])
         ->middleware('throttle:shared.read');
+
+    /*
+    | إدارة الجلسات والأجهزة (User Sessions Management)
+    |------------------------------------------------------------------------
+    */
+    Route::get('/sessions', [SessionController::class, 'index'])
+        ->middleware('throttle:shared.read');
+
+    Route::delete('/sessions/{id}', [SessionController::class, 'destroy'])
+        ->middleware('throttle:shared.write');
 
     /*
     | L3/L4 — الملف الشخصي (Shared — read حسب الدور)
