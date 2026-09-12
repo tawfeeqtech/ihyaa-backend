@@ -22,6 +22,7 @@ class EvaluationInputSnapshot extends Model
         'video_meta',
         'team_meta',
         'business_info',
+        'external_input',
     ];
 
     /**
@@ -34,6 +35,7 @@ class EvaluationInputSnapshot extends Model
             'video_meta' => 'array',
             'team_meta' => 'array',
             'business_info' => 'array',
+            'external_input' => 'array',
         ];
     }
 

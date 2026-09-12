@@ -68,7 +68,13 @@ final class EvaluationService
         $this->beginProcessing($evaluation, $project);
 
         try {
-            $input = $this->snapshotter->snapshot($project, $evaluation);
+            $input = $this->snapshotter->snapshot(
+                $project,
+                $evaluation,
+                is_array($evaluation->inputSnapshot?->external_input)
+                    ? $evaluation->inputSnapshot->external_input
+                    : null,
+            );
             $input['model_used'] = null; // يُحدَّد فعلياً من ai_request_logs (FR-206/207)
 
             /** @var EvaluationOrchestrator $engine */
@@ -87,11 +93,11 @@ final class EvaluationService
      * @throws EvaluationCooldownException إذا كانت فترة الهدوء 24h نشطة
      * @throws EvaluationInProgressException إذا وُجد تقييم pending|processing نشط
      */
-    public function atomicallyCreateEvaluation(Project $project): Evaluation
+    public function atomicallyCreateEvaluation(Project $project, ?string $idempotencyKey = null): Evaluation
     {
         $lock = Cache::lock($this->cacheService->lockKey((int) $project->id), 30);
 
-        return $lock->block(5, function () use ($project) {
+        return $lock->block(5, function () use ($project, $idempotencyKey) {
             /** @var Project|null $fresh */
             $fresh = Project::whereKey($project->id)->lockForUpdate()->first();
 
@@ -105,11 +111,11 @@ final class EvaluationService
             // §4.3: حذف مفاتيح الكاش فقط بعد التأكيد — لا قبل (FR-216).
             $this->cacheService->forgetProject((int) $fresh->id);
 
-            return $this->createPendingEvaluation($fresh);
+            return $this->createPendingEvaluation($fresh, $idempotencyKey);
         });
     }
 
-    public function createPendingEvaluation(Project $project): Evaluation
+    public function createPendingEvaluation(Project $project, ?string $idempotencyKey = null): Evaluation
     {
         $version = (int) Evaluation::where('project_id', $project->id)->max('version') + 1;
 
@@ -117,7 +123,42 @@ final class EvaluationService
             'project_id' => $project->id,
             'version' => $version,
             'status' => EvaluationStatus::PENDING,
+            'external_idempotency_key' => $idempotencyKey,
         ]);
+    }
+
+    /**
+    * إنشاء تقييم خارجي وحفظ Snapshot قبل إرساله إلى FastAPI.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function startExternalEvaluation(Project $project, array $input, string $idempotencyKey): Evaluation
+    {
+        $existing = Evaluation::where('external_idempotency_key', $idempotencyKey)->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $evaluation = $this->atomicallyCreateEvaluation($project, $idempotencyKey);
+        $this->snapshotter->snapshot($project, $evaluation, $input);
+
+        return $evaluation;
+    }
+
+    public function markExternalDispatchFailed(Evaluation $evaluation, Throwable $exception): Evaluation
+    {
+        $evaluation->fill([
+            'status' => EvaluationStatus::FAILED,
+            'error_log' => [[
+                'type' => 'python_service_unavailable',
+                'message' => $exception->getMessage(),
+                'timestamp' => now()->toISOString(),
+            ]],
+            'completed_at' => now(),
+        ])->save();
+
+        return $evaluation;
     }
 
     /**

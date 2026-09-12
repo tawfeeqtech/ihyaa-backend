@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EvaluationController;
+use App\Http\Controllers\Api\EvaluationWebhookController;
+use App\Http\Controllers\Api\ExternalEvaluationController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\InterestController;
@@ -30,6 +32,9 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/health', [HealthController::class, 'index']);
 Route::get('/ready', [HealthController::class, 'ready']);
+
+Route::post('/webhooks/evaluations', [EvaluationWebhookController::class, 'store'])
+    ->middleware('evaluation.webhook');
 
 /*
 |--------------------------------------------------------------------------
@@ -110,6 +115,13 @@ Route::get('/profile/{user}', [ProfileController::class, 'showPublic'])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'token.refresh'])->group(function () {
+        Route::prefix('integrations')
+            ->middleware(['idea-owner', 'email.verified', 'throttle:external.evaluations'])
+            ->group(function () {
+                Route::post('/evaluations', [ExternalEvaluationController::class, 'store']);
+                Route::get('/evaluations/{evaluation}/status', [ExternalEvaluationController::class, 'status']);
+                Route::get('/evaluations/{evaluation}', [ExternalEvaluationController::class, 'show']);
+            });
 
     /*
     | إدارة التصنيفات والوسوم — الصلاحيات داخل controllers لأن الإنشاء متاح

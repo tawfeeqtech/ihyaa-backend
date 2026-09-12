@@ -88,6 +88,7 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(3)->by(($r->user()?->id ?: $r->ip()).':'.$projectId);
         });
         RateLimiter::for('ai.evaluate', fn (Request $r) => Limit::perMinute(10)->by($r->user()?->id ?: $r->ip()));                // SRS-API-44..46 · 10/دقيقة/مستخدم (evaluation-api.md §1)
+        RateLimiter::for('external.evaluations', fn (Request $r) => Limit::perMinute(10)->by($r->user()?->id ?: $r->ip()));
         RateLimiter::for('ai.report', fn (Request $r) => Limit::perHour(20)->by($r->user()?->id ?: $r->ip()));                    // RL-AI-02 + SRS-API-48 · 20/ساعة/مستخدم (sprint2)
         RateLimiter::for('ai.search', fn (Request $r) => Limit::perMinute(60)->by($r->ip()));                                     // search-api.md · 60/دقيقة/عنوان IP
         RateLimiter::for('upload.file', fn (Request $r) => Limit::perMinute(10)->by($r->user()?->id ?: $r->ip()));                // RL-IO-03/07

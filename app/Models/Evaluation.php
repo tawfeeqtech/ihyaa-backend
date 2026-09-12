@@ -32,6 +32,9 @@ class Evaluation extends Model
         'error_log',
         'started_at',
         'completed_at',
+        'external_idempotency_key',
+        'python_evaluation_id',
+        'webhook_event_id',
     ];
 
     /**
@@ -53,6 +56,9 @@ class Evaluation extends Model
             'version' => 'integer',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'external_idempotency_key' => 'string',
+            'python_evaluation_id' => 'string',
+            'webhook_event_id' => 'string',
         ];
     }
 

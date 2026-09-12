@@ -2,6 +2,14 @@
 
 return [
 
+    'python_evaluation' => [
+        'url' => env('PYTHON_EVALUATION_URL'),
+        'api_key' => env('PYTHON_EVALUATION_API_KEY'),
+        'webhook_url' => env('EVALUATION_WEBHOOK_URL'),
+        'webhook_secret' => env('EVALUATION_WEBHOOK_SECRET'),
+        'webhook_tolerance_seconds' => (int) env('EVALUATION_WEBHOOK_TOLERANCE_SECONDS', 300),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

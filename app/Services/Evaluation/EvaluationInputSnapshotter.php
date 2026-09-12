@@ -22,7 +22,7 @@ final class EvaluationInputSnapshotter
      *
      * @return array<string, mixed>
      */
-    public function snapshot(Project $project, Evaluation $evaluation): array
+    public function snapshot(Project $project, Evaluation $evaluation, ?array $externalInput = null): array
     {
         $filesMeta = $this->filesMeta($project);
         $videoMeta = $this->videoMeta($project);
@@ -39,8 +39,13 @@ final class EvaluationInputSnapshotter
                 'video_meta' => $videoMeta,
                 'team_meta' => $teamMeta,
                 'business_info' => $businessInfo,
+                'external_input' => $externalInput,
             ],
         );
+
+        if ($externalInput !== null) {
+            return $this->externalEngineInput($project, $evaluation, $externalInput);
+        }
 
         $tags = $project->tags ?? [];
 
@@ -61,6 +66,44 @@ final class EvaluationInputSnapshotter
             'team' => $teamMeta,
             'roadmap' => null,
             'model_used' => null,          // يُملأ من ai_request_logs بعد التنفيذ (FR-206/207)
+        ];
+    }
+
+    /**
+     * تحويل Payload الخارجي المطابق لنموذج Project إلى سياق Orchestrator.
+     * الحقول غير الموجودة في Project تبقى null/فارغة عمداً.
+     *
+     * @param  array<string, mixed>  $externalInput
+     * @return array<string, mixed>
+     */
+    private function externalEngineInput(Project $project, Evaluation $evaluation, array $externalInput): array
+    {
+        $tags = array_values(array_filter(array_map('strval', (array) ($externalInput['tags'] ?? []))));
+        $category = $project->category?->name_en ?? $project->category?->slug ?? null;
+
+        return [
+            'evaluation_id' => $evaluation->id,
+            'project_id' => $project->id,
+            'description' => (string) ($externalInput['description'] ?? ''),
+            'github_readme' => null,
+            'docs_meta' => [],
+            'technologies' => $tags,
+            'tags' => $tags,
+            'category' => $category,
+            'video_description' => null,
+            'business_info' => [
+                'budget' => [
+                    'min' => isset($externalInput['budget_min']) ? (float) $externalInput['budget_min'] : null,
+                    'max' => isset($externalInput['budget_max']) ? (float) $externalInput['budget_max'] : null,
+                ],
+                'sector' => $category,
+                'stage' => $externalInput['status'] ?? null,
+            ],
+            'market' => null,
+            'competitors' => [],
+            'team' => (array) ($externalInput['team'] ?? []),
+            'roadmap' => null,
+            'model_used' => null,
         ];
     }
 

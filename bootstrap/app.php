@@ -10,6 +10,7 @@ use App\Http\Middleware\PendingRoleMiddleware;
 use App\Http\Middleware\RefreshSanctumToken;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackRateLimitViolations;
+use App\Http\Middleware\VerifyEvaluationWebhook;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'idea-owner' => IdeaOwnerMiddleware::class,
             'investor' => InvestorMiddleware::class,
             'admin' => AdminMiddleware::class,
+            'evaluation.webhook' => VerifyEvaluationWebhook::class,
             'email.verified' => EnsureEmailVerified::class,
             'token.refresh' => RefreshSanctumToken::class,
             'rate.violations' => TrackRateLimitViolations::class,
