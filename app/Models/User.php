@@ -23,7 +23,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    public const OTP_EXPIRY_SECONDS = 60;   // صلاحية رمز OTP: دقيقة واحدة (SRS-F01-02)
+    public const OTP_EXPIRY_SECONDS = 420;  // صلاحية رمز OTP: 7 دقائق (SRS-F01-02)
 
     public const OTP_MAX_ATTEMPTS = 3;      // حظر بعد 3 محاولات خاطئة
 
@@ -174,7 +174,7 @@ class User extends Authenticatable
     // ——————————————————————— OTP (6 أرقام — دقيقة واحدة) ———————————————————————
 
     /**
-     * إنشاء رمز OTP جديد (صلاحية 60 ثانية) وإرساله بالبريد.
+    * إنشاء رمز OTP جديد (صلاحية 7 دقائق) وإرساله بالبريد.
      * الرمز يُخزَّن مشفَّراً (bcrypt) — لم يعد plaintext في قاعدة البيانات.
      * plaintext يُرسل بالبريد فقط ولا يُحفظ.
      */
@@ -246,7 +246,7 @@ class User extends Authenticatable
     {
         Mail::raw(
             "رمز التحقق الخاص بك في منصة إحياء هو: {$code}\n".
-            'الرمز صالح لمدة دقيقة واحدة. إذا لم تكن أنت من طلب هذا الرمز، تجاهل هذه الرسالة.',
+            'الرمز صالح لمدة 7 دقائق. إذا لم تكن أنت من طلب هذا الرمز، تجاهل هذه الرسالة.',
             function ($message) {
                 $message->to($this->email)
                     ->subject('رمز التحقق — منصة إحياء (Ihyaa)');
