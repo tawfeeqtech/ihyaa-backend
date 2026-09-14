@@ -116,6 +116,10 @@ class AuthController
             return $this->notFound(__('auth.user_not_found'));
         }
 
+        if ($user->email_verified_at === null) {
+            return $this->error('EMAIL_NOT_VERIFIED', __('auth.email_not_verified'), 401);
+        }
+
         if ($user->role !== null) {
             return $this->error('ROLE_ALREADY_SET', __('profile.role_already_set'), 409);
         }
@@ -135,7 +139,14 @@ class AuthController
             $user->fill($profileFields)->save();
         }
 
+        $user->forceFill(['last_login_at' => now(), 'last_active_at' => now()])->save();
+
+        // إصدار توكن الجلسة بعد اختيار الدور ليدخل المستخدم للتطبيق فوراً
+        $token = $this->createSessionToken($user, $request);
+
         return $this->success([
+            'token' => $token->plainTextToken,
+            'token_expires_at' => now()->addHours(User::TOKEN_EXPIRY_HOURS)->toISOString(),
             'user' => $user->fresh()->toApiArray(),
         ], __('auth.role_set'));
     }
@@ -200,6 +211,11 @@ class AuthController
 
         if (! $user->is_active) {
             return $this->error('ACCOUNT_DISABLED', __('auth.account_disabled'), 403);
+        }
+
+        // مستخدم لم يحدد دوره بعد → منع تسجيل الدخول حتى اختيار الدور
+        if ($user->role === null) {
+            return $this->error('ROLE_REQUIRED', __('auth.role_required'), 403);
         }
 
         $user->forceFill(['last_login_at' => now(), 'last_active_at' => now()])->save();
@@ -314,7 +330,16 @@ class AuthController
             return $this->error('OTP_INVALID', __('auth.otp_invalid'), 422);
         }
 
-        // الدستور V · US-001 s6: لحظة التفعيل الناجح — هنا يُصدر التوكن لأول مرة (T124).
+        // إذا لم يكن الدور محدداً، يتم تفعيل البريد فقط دون إصدار توكن ليتوجه المستخدم لاختيار الدور
+        if ($user->role === null) {
+            return $this->success([
+                'email_verified' => true,
+                'role_required' => true,
+                'user' => $user->fresh()->toApiArray(),
+            ], __('auth.otp_verified'));
+        }
+
+        // الدستور V · US-001 s6: لحظة التفعيل الناجح — هنا يُصدر التوكن إذا كان الدور محدداً (T124).
         $token = $this->createSessionToken($user, $request);
 
         return $this->success([

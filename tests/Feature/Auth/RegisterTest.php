@@ -125,8 +125,19 @@ it('returns 422 when the password confirmation does not match', function () {
 
 // ——————————————————————— تعيين الدور بعد التسجيل ———————————————————————
 
-it('sets the role via public register endpoint before email verification', function () {
+it('rejects setting role via public endpoint if email is not verified yet', function () {
     $user = User::factory()->unverified()->create(['role' => null]);
+
+    $this->postJson('/api/register/role', [
+        'email' => $user->email,
+        'role' => 'idea_owner',
+    ])
+        ->assertStatus(401)
+        ->assertJsonPath('code', 'EMAIL_NOT_VERIFIED');
+});
+
+it('sets the role via public register endpoint after email verification and issues a token', function () {
+    $user = User::factory()->create(['role' => null, 'email_verified_at' => now()]);
 
     $this->postJson('/api/register/role', [
         'email' => $user->email,
@@ -135,10 +146,12 @@ it('sets the role via public register endpoint before email verification', funct
     ])
         ->assertStatus(200)
         ->assertJsonPath('success', true)
+        ->assertJsonStructure(['data' => ['token', 'token_expires_at', 'user']])
         ->assertJsonPath('data.user.role', 'idea_owner');
 
     expect($user->fresh()->role)->toBe(UserRole::IDEA_OWNER);
     expect($user->fresh()->university)->toBe('جامعة الملك سعود');
+    expect($user->tokens()->count())->toBe(1);
 });
 
 it('rejects setting role via public endpoint if role is already set', function () {
@@ -153,7 +166,7 @@ it('rejects setting role via public endpoint if role is already set', function (
 });
 
 it('forbids setting admin role via public endpoint', function () {
-    $user = User::factory()->unverified()->create(['role' => null]);
+    $user = User::factory()->withoutRole()->create();
 
     $this->postJson('/api/register/role', [
         'email' => $user->email,

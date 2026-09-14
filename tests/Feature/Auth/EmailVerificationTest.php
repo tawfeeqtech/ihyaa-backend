@@ -7,8 +7,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('verifies the email with a valid OTP and issues a token', function () {
-    $user = User::factory()->unverified()->create(['email' => 'verify@example.com']);
+it('verifies the email with a valid OTP and issues a token when role is set', function () {
+    $user = User::factory()->ideaOwner()->unverified()->create(['email' => 'verify@example.com']);
     $code = $user->generateOtp();
 
     $this->postJson('/api/email/verify', [
@@ -22,6 +22,25 @@ it('verifies the email with a valid OTP and issues a token', function () {
 
     expect($user->fresh()->email_verified_at)->not->toBeNull();
     expect($user->fresh()->otp_code)->toBeNull();
+});
+
+it('verifies the email with valid OTP but does not issue a token when role is null', function () {
+    $user = User::factory()->withoutRole()->unverified()->create(['email' => 'norole@example.com']);
+    $code = $user->generateOtp();
+
+    $this->postJson('/api/email/verify', [
+        'email' => 'norole@example.com',
+        'code' => $code,
+    ])
+        ->assertStatus(200)
+        ->assertJsonMissingPath('data.token')
+        ->assertJsonPath('data.role_required', true)
+        ->assertJsonPath('data.email_verified', true)
+        ->assertJsonPath('data.user.email', 'norole@example.com');
+
+    expect($user->fresh()->email_verified_at)->not->toBeNull();
+    expect($user->fresh()->otp_code)->toBeNull();
+    expect($user->tokens()->count())->toBe(0);
 });
 
 it('returns 422 OTP_INVALID for a wrong code', function () {

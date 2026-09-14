@@ -51,3 +51,15 @@ it('returns 401 INVALID_CREDENTIALS for a nonexistent email without revealing it
         ->assertStatus(401)
         ->assertJsonPath('code', 'INVALID_CREDENTIALS');
 });
+
+it('returns 403 ROLE_REQUIRED when a verified user tries to login without a role', function () {
+    User::factory()->withoutRole()->create(['email' => 'norole@example.com']);
+
+    $this->postJson('/api/login', [
+        'email' => 'norole@example.com',
+        'password' => 'password',
+    ])
+        ->assertStatus(403)
+        ->assertJsonPath('code', 'ROLE_REQUIRED');
+});
+

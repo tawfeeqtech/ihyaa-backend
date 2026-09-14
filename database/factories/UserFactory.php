@@ -72,6 +72,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function withoutRole(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => null,
+        ]);
+    }
+
     /** مستخدم OAuth جديد لم يختر الدور بعد (SRS-F01-07) */
     public function oauthWithoutRole(): static
     {
