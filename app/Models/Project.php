@@ -64,6 +64,8 @@ class Project extends Model
         'tags',
         'team',                    // أعضاء الفريق JSON [{name, role}] — SRS-F02-01
         'github_url',
+        'website_url',
+        'social_links',
         'video_url',
         'video_provider',
         'budget_min',
@@ -86,6 +88,7 @@ class Project extends Model
             'video_provider' => VideoProvider::class,
             'tags' => 'array',
             'team' => 'array',
+            'social_links' => 'array',
             'budget_min' => 'float',
             'budget_max' => 'float',
             'ai_score' => 'float',

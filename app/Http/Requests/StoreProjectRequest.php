@@ -47,6 +47,9 @@ class StoreProjectRequest extends FormRequest
             'team.*.name' => ['required_with:team', 'string', 'max:120'],
             'team.*.role' => ['nullable', 'string', 'max:120'],
             'github_url' => ['nullable', 'url', 'max:255', 'regex:/^https?:\/\/(www\.)?github\.com\//i'], // T134
+            'website_url' => ['nullable', 'url', 'max:255'],
+            'social_links' => ['nullable', 'array', 'max:15'],
+            'social_links.*' => ['nullable', 'url', 'max:255'],
             'video_url' => ['nullable', 'url', 'max:255',
                 'regex:/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/.+$/i', // SRS-F02-03
             ],

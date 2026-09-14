@@ -103,7 +103,7 @@ it('rejects an invalid cover_image file', function () {
     ]);
 
     $this->post('/api/projects', $payload)
-        ->assertStatus(302); // Laravel redirect on normal post validation failure, or postJson
+        ->assertStatus(422);
 });
 
 it('rejects an invalid cover_image via postJson', function () {
@@ -194,3 +194,38 @@ it('returns 401 for an unauthenticated visitor', function () {
     $this->postJson('/api/projects', storeProjectPayload())
         ->assertStatus(401);
 });
+
+it('creates a project with website_url and social_links', function () {
+    Sanctum::actingAs($this->owner);
+
+    $this->postJson('/api/projects', storeProjectPayload([
+        'website_url' => 'https://ihyaa.example.com',
+        'social_links' => [
+            'facebook' => 'https://facebook.com/ihyaa',
+            'x' => 'https://x.com/ihyaa',
+        ],
+    ]))
+        ->assertStatus(201)
+        ->assertJsonPath('data.website_url', 'https://ihyaa.example.com')
+        ->assertJsonPath('data.social_links.facebook', 'https://facebook.com/ihyaa')
+        ->assertJsonPath('data.social_links.x', 'https://x.com/ihyaa');
+
+    $this->assertDatabaseHas('projects', [
+        'user_id' => $this->owner->id,
+        'website_url' => 'https://ihyaa.example.com',
+    ]);
+});
+
+it('validates website_url and social_links format on create', function () {
+    Sanctum::actingAs($this->owner);
+
+    $this->postJson('/api/projects', storeProjectPayload([
+        'website_url' => 'invalid-site-url',
+        'social_links' => [
+            'facebook' => 'invalid-social-url',
+        ],
+    ]))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['website_url', 'social_links.facebook']);
+});
+

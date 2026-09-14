@@ -127,3 +127,39 @@ it('returns 404 when updating a soft-deleted project', function () {
     ])
         ->assertStatus(404);
 });
+
+it('updates website_url and social_links successfully', function () {
+    $this->putJson("/api/projects/{$this->project->id}", [
+        'website_url' => 'https://ihyaa.example.com',
+        'social_links' => [
+            'facebook' => 'https://facebook.com/ihyaa',
+            'x' => 'https://x.com/ihyaa',
+            'linkedin' => 'https://linkedin.com/company/ihyaa',
+        ],
+    ])
+        ->assertStatus(200)
+        ->assertJsonPath('data.project.website_url', 'https://ihyaa.example.com')
+        ->assertJsonPath('data.project.social_links.facebook', 'https://facebook.com/ihyaa')
+        ->assertJsonPath('data.project.social_links.x', 'https://x.com/ihyaa')
+        ->assertJsonPath('data.project.social_links.linkedin', 'https://linkedin.com/company/ihyaa');
+
+    $fresh = $this->project->fresh();
+    expect($fresh->website_url)->toBe('https://ihyaa.example.com')
+        ->and($fresh->social_links)->toBe([
+            'facebook' => 'https://facebook.com/ihyaa',
+            'x' => 'https://x.com/ihyaa',
+            'linkedin' => 'https://linkedin.com/company/ihyaa',
+        ]);
+});
+
+it('validates website_url and social_links format on update', function () {
+    $this->putJson("/api/projects/{$this->project->id}", [
+        'website_url' => 'invalid-url',
+        'social_links' => [
+            'facebook' => 'not-a-valid-url',
+        ],
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['website_url', 'social_links.facebook']);
+});
+

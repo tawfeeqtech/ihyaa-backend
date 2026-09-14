@@ -76,6 +76,8 @@ class ProjectResource extends JsonResource
         $data['description'] = $project->description;
         $data['publication_status'] = $project->publication_status->value;
         $data['github_url'] = $project->github_url;
+        $data['website_url'] = $project->website_url;
+        $data['social_links'] = $project->social_links ?? [];
         $data['video'] = $project->video_url ? [
             'url' => $project->video_url,
             'provider' => $project->video_provider?->value,
