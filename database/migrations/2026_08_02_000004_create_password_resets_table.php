@@ -14,6 +14,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('password_resets', function (Blueprint $table) {
+            $table->id();
             $table->string('email', 190)->index();
             $table->string('token', 64);                     // يُخزن hash (Str::random + Hash)
             $table->timestamp('created_at')->nullable();     // الصلاحية: ساعة واحدة (تحقق على مستوى التطبيق)
