@@ -63,9 +63,14 @@ class BrevoApiTransport extends AbstractTransport
             $payload['textContent'] = (string) $textContent;
         }
 
-        // دعم المرفقات وتضمين الشعار عبر Embedded CID
+        // دعم المرفقات الفعلية فقط (استثناء المرفقات المضمنة لكي لا تظهر كملف تنزيل للمستخدم)
         $attachments = [];
         foreach ($email->getAttachments() as $attachment) {
+            $disposition = $attachment->getPreparedHeaders()->get('content-disposition');
+            if ($disposition && str_contains(strtolower($disposition->getBodyAsString()), 'inline')) {
+                continue;
+            }
+
             $attachments[] = [
                 'name' => $attachment->getFilename() ?: 'attachment',
                 'content' => base64_encode($attachment->getBody()),

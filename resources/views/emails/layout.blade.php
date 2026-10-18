@@ -69,9 +69,7 @@
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td align="center">
-                                        @if(file_exists(public_path('logo.jpeg')))
-                                            <img src="{{ $message->embed(public_path('logo.jpeg')) }}" alt="شعار منصة إحياء" width="110" style="max-width: 110px; height: auto; border-radius: 10px; margin-bottom: 12px; border: 1px solid #9E7F4D;">
-                                        @endif
+                                        <img src="{{ rtrim(config('app.url', url('/')), '/') }}/logo.jpeg" alt="شعار منصة إحياء" width="110" style="max-width: 110px; height: auto; border-radius: 10px; margin-bottom: 12px; border: 1px solid #9E7F4D; display: inline-block;">
                                         <h1 style="margin: 6px 0 0 0; color: #ffffff; font-size: 22px; font-weight: 800; font-family: 'Cairo', Tahoma, sans-serif; letter-spacing: 0.5px;">
                                             منصة إحياء
                                         </h1>
