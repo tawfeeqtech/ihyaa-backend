@@ -7,9 +7,11 @@ use App\Models\PersonalAccessToken;
 use App\Models\Project;
 use App\Observers\EvaluationObserver;
 use App\Observers\ProjectObserver;
+use App\Support\Mail\BrevoApiTransport;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
@@ -46,6 +48,13 @@ class AppServiceProvider extends ServiceProvider
                 .'/'.config('app.locale')
                 .'/reset-password?token='.$token
                 .'&email='.urlencode($user->getEmailForPasswordReset());
+        });
+
+        // تسجيل مُشغّل البريد المخصص لـ Brevo API (HTTPS — Port 443) لتجاوز قيود الاستضافات السحابية
+        Mail::extend('brevo', function (array $config = []) {
+            $key = $config['key'] ?? config('services.brevo.key', env('BREVO_API_KEY'));
+
+            return new BrevoApiTransport((string) $key);
         });
     }
 
