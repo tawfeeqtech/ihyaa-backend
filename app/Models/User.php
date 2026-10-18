@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Mail\OtpMail;
+use App\Mail\ResetPasswordMail;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -244,14 +246,18 @@ class User extends Authenticatable
 
     public function sendOtpEmail(string $code): void
     {
-        Mail::raw(
-            "رمز التحقق الخاص بك في منصة إحياء هو: {$code}\n".
-            'الرمز صالح لمدة 7 دقائق. إذا لم تكن أنت من طلب هذا الرمز، تجاهل هذه الرسالة.',
-            function ($message) {
-                $message->to($this->email)
-                    ->subject('رمز التحقق — منصة إحياء (Ihyaa)');
-            }
-        );
+        Mail::to($this->email)->send(new OtpMail($code, $this->name));
+    }
+
+    /**
+     * إرسال إشعار إعادة تعيين كلمة المرور بهوية منصة إحياء المعتمدة.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $frontendUrl = rtrim((string) env('FRONTEND_URL', config('app.url', 'http://localhost:3000')), '/');
+        $resetUrl = "{$frontendUrl}/auth/reset-password?token={$token}&email=" . urlencode((string) $this->email);
+
+        Mail::to($this->email)->send(new ResetPasswordMail($resetUrl, $this->name));
     }
 
     // ——————————————————————— أدوات ———————————————————————
